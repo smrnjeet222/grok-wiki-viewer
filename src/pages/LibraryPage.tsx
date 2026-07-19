@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { fetchWikis, loadWikiFromUrl, parseWikiJson, storeUploadedWiki } from "../lib/api";
-import type { WikiListItem } from "../lib/types";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ingestWikiFiles, ingestWikiUrl, wikiKeys, wikiListQuery } from "../lib/queries";
+import type { WikiListResult } from "../lib/api";
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
@@ -16,76 +17,61 @@ function formatDate(value: string | null): string {
 
 export function LibraryPage() {
   const navigate = useNavigate();
-  const [items, setItems] = useState<WikiListItem[]>([]);
-  const [roots, setRoots] = useState<string[]>([]);
-  const [serverAvailable, setServerAvailable] = useState(true);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [dragActive, setDragActive] = useState(false);
   const [urlValue, setUrlValue] = useState("");
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { data, isLoading } = useQuery(wikiListQuery);
+  const items = data?.items ?? [];
+  const roots = data?.roots ?? [];
+  const serverAvailable = data?.serverAvailable ?? false;
 
   useEffect(() => {
     document.title = "Local Wikis · Grok-Wiki";
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const data = await fetchWikis();
-      if (cancelled) return;
-      setItems(data.items);
-      setRoots(data.roots);
-      setServerAvailable(data.serverAvailable);
-      setLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function ingestFiles(files: FileList | File[]) {
-    setUploadError(null);
-    const list = [...files].filter((file) => file.name.endsWith(".json"));
-    if (list.length === 0) {
-      setUploadError("Drop a wiki-*.json file.");
-      return;
-    }
-    try {
-      let lastId = "";
-      const added: WikiListItem[] = [];
-      for (const file of list) {
-        const wiki = parseWikiJson(await file.text());
-        added.push(await storeUploadedWiki(wiki));
-        lastId = wiki.id;
-      }
-      setItems((prev) => {
+  const filesMutation = useMutation({
+    mutationFn: (files: File[]) => ingestWikiFiles(files),
+    onSuccess: ({ added, lastId }) => {
+      queryClient.setQueryData<WikiListResult>(wikiKeys.list(), (prev) => {
+        const base = prev ?? { items: [], roots: [], serverAvailable: false };
         const seen = new Set(added.map((item) => item.id));
-        return [...added, ...prev.filter((item) => !seen.has(item.id))];
+        return {
+          ...base,
+          items: [...added, ...base.items.filter((item) => !seen.has(item.id))],
+        };
       });
-      if (list.length === 1 && lastId) navigate(`/wiki/${encodeURIComponent(lastId)}`);
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : String(err));
-    }
+      if (added.length === 1 && lastId) {
+        navigate({ to: "/wiki/$id", params: { id: lastId } });
+      }
+    },
+    onError: (err) => setUploadError(err instanceof Error ? err.message : String(err)),
+  });
+
+  const urlMutation = useMutation({
+    mutationFn: (url: string) => ingestWikiUrl(url),
+    onSuccess: (item) => {
+      void queryClient.invalidateQueries({ queryKey: wikiKeys.list() });
+      navigate({ to: "/wiki/$id", params: { id: item.id } });
+    },
+    onError: (err) => setUploadError(err instanceof Error ? err.message : String(err)),
+  });
+
+  function ingestFiles(files: FileList | File[]) {
+    setUploadError(null);
+    filesMutation.mutate([...files]);
   }
 
-  async function loadUrl() {
+  function loadUrl() {
     const url = urlValue.trim();
     if (!url) return;
     setUploadError(null);
-    setBusy(true);
-    try {
-      const item = await loadWikiFromUrl(url);
-      navigate(`/wiki/${encodeURIComponent(item.id)}`);
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
+    urlMutation.mutate(url);
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <main id="main-content" className="state-page" aria-live="polite">
         <div className="state-mark" aria-hidden="true" />
@@ -118,7 +104,7 @@ export function LibraryPage() {
         onDrop={(event) => {
           event.preventDefault();
           setDragActive(false);
-          void ingestFiles(event.dataTransfer.files);
+          ingestFiles(event.dataTransfer.files);
         }}
       >
         <strong>Drag &amp; drop</strong>
@@ -131,7 +117,7 @@ export function LibraryPage() {
         multiple
         className="sr-only"
         onChange={(event) => {
-          if (event.target.files) void ingestFiles(event.target.files);
+          if (event.target.files) ingestFiles(event.target.files);
           event.target.value = "";
         }}
       />
@@ -149,12 +135,17 @@ export function LibraryPage() {
           onKeyDown={(event) => {
             if (event.key === "Enter") {
               event.preventDefault();
-              void loadUrl();
+              loadUrl();
             }
           }}
         />
-        <button type="button" className="btn primary" disabled={busy} onClick={() => void loadUrl()}>
-          {busy ? "Loading…" : "Load URL"}
+        <button
+          type="button"
+          className="btn primary"
+          disabled={urlMutation.isPending}
+          onClick={() => loadUrl()}
+        >
+          {urlMutation.isPending ? "Loading…" : "Load URL"}
         </button>
       </div>
       {uploadError ? (
@@ -219,7 +210,7 @@ export function LibraryPage() {
       ) : (
         <section className="wiki-grid" aria-label="Available wikis">
           {items.map((wiki) => (
-            <Link key={wiki.id} className="wiki-card" to={`/wiki/${encodeURIComponent(wiki.id)}`}>
+            <Link key={wiki.id} className="wiki-card" to="/wiki/$id" params={{ id: wiki.id }}>
               <div className="wiki-card-topline">
                 <span>{wiki.repository}</span>
                 <span aria-hidden="true">↗</span>

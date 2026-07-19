@@ -1,5 +1,5 @@
 import { useEffect, useRef, type MouseEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
 import type { WikiPageMeta, WikiRecord } from "../lib/types";
 
 function formatDate(value?: string): string {

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
-import { fetchWiki, orderedPageMetas } from "../lib/api";
+import { getRouteApi, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { orderedPageMetas } from "../lib/api";
+import { wikiDetailQuery } from "../lib/queries";
 import { scrollToHash } from "../lib/scroll";
 import type { WikiPageMeta, WikiRecord } from "../lib/types";
 import { AgentHandoff, SharePanel } from "../components/SharePanel";
@@ -12,6 +14,8 @@ import {
 } from "../components/WikiMarkdown";
 import { WikiSidebar } from "../components/WikiSidebar";
 import type { TocHeading } from "../lib/headings";
+
+const routeApi = getRouteApi("/wiki/$id");
 
 function PageBlock({
   page,
@@ -152,41 +156,20 @@ function PageBlock({
 }
 
 export function WikiPage() {
-  const { id = "" } = useParams();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { id } = routeApi.useParams();
+  const search = routeApi.useSearch();
+  const navigate = routeApi.useNavigate();
   // Paged is default; continuous only when explicitly requested.
-  const mode = searchParams.get("mode") === "continuous" ? "continuous" : "paged";
-  const selectedPageId = searchParams.get("page") || undefined;
+  const mode = search.mode === "continuous" ? "continuous" : "paged";
+  const selectedPageId = search.page;
 
-  const [wiki, setWiki] = useState<WikiRecord | null>(null);
-  const [handoff, setHandoff] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, error, isLoading } = useQuery(wikiDetailQuery(id));
+  const wiki = data?.wiki ?? null;
+  const handoff = data?.handoffPrompt ?? "";
+
   const [shareOpen, setShareOpen] = useState(false);
   const [agentOpen, setAgentOpen] = useState(false);
   const [mobileContentsOpen, setMobileContentsOpen] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    (async () => {
-      try {
-        const data = await fetchWiki(id);
-        if (!cancelled) {
-          setWiki(data.wiki);
-          setHandoff(data.handoffPrompt);
-        }
-      } catch (err) {
-        if (!cancelled) setError(String(err));
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
 
   const pages = useMemo(() => (wiki ? orderedPageMetas(wiki) : []), [wiki]);
   const activePageId = selectedPageId || pages[0]?.id;
@@ -218,7 +201,7 @@ export function WikiPage() {
   }, [activePage, wiki]);
 
   useEffect(() => {
-    if (loading || !wiki) return;
+    if (isLoading || !wiki) return;
     const hash = window.location.hash;
     if (!hash) return;
     const t = window.setTimeout(() => {
@@ -227,14 +210,14 @@ export function WikiPage() {
       scrollToHash(`#${activePageId}--${rawId}`, "auto");
     }, 50);
     return () => window.clearTimeout(t);
-  }, [loading, wiki, activePageId, mode]);
+  }, [isLoading, wiki, activePageId, mode]);
 
   function selectPage(pageId: string) {
-    const next = new URLSearchParams(searchParams);
-    next.set("page", pageId);
     if (mode === "continuous") {
-      next.set("mode", "continuous");
-      setSearchParams(next, { replace: true });
+      void navigate({
+        search: { page: pageId, mode: "continuous" },
+        replace: true,
+      });
       window.requestAnimationFrame(() => {
         document.getElementById(`wiki-page-${pageId}`)?.scrollIntoView({
           behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
@@ -242,8 +225,7 @@ export function WikiPage() {
         });
       });
     } else {
-      next.delete("mode");
-      setSearchParams(next);
+      void navigate({ search: { page: pageId } });
       window.scrollTo({
         top: 0,
         behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
@@ -252,10 +234,7 @@ export function WikiPage() {
   }
 
   function setMode(nextMode: "continuous" | "paged") {
-    const next = new URLSearchParams(searchParams);
-    if (nextMode === "continuous") next.set("mode", "continuous");
-    else next.delete("mode");
-    if (!next.get("page") && activePageId) next.set("page", activePageId);
+    const page = selectedPageId || activePageId;
 
     let nextHash = "";
     if (activePageId && window.location.hash) {
@@ -271,15 +250,16 @@ export function WikiPage() {
             : rawHash;
     }
 
-    setSearchParams(next);
-    if (nextHash) {
-      window.requestAnimationFrame(() => {
-        window.history.replaceState(null, "", `${window.location.pathname}?${next}#${nextHash}`);
-      });
-    }
+    void navigate({
+      search: {
+        page,
+        mode: nextMode === "continuous" ? "continuous" : undefined,
+      },
+      hash: nextHash || undefined,
+    });
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <main id="main-content" className="state-page" aria-live="polite">
         <div className="state-mark" aria-hidden="true" />
@@ -294,7 +274,7 @@ export function WikiPage() {
       <main id="main-content" className="state-page" role="alert">
         <p className="eyebrow">Wiki unavailable</p>
         <h1>Couldn’t open this wiki</h1>
-        <p>{error || "Wiki not found"}</p>
+        <p>{error ? String(error) : "Wiki not found"}</p>
         <Link className="btn" to="/">
           Return to library
         </Link>
