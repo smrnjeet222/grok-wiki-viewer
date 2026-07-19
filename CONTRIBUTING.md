@@ -10,7 +10,7 @@ tool — contributions that keep it simple, offline-friendly, and fast are very 
 ## Setup
 
 ```bash
-git clone https://github.com/smrnjeet/grok-wiki-viewer.git
+git clone https://github.com/smrnjeet222/grok-wiki-viewer.git
 cd grok-wiki-viewer
 bun install
 bun run dev
@@ -59,5 +59,5 @@ scripts/   dev runner (Vite + API together)
 
 ## Reporting issues
 
-Open an issue at https://github.com/smrnjeet/grok-wiki-viewer/issues with steps
+Open an issue at https://github.com/smrnjeet222/grok-wiki-viewer/issues with steps
 to reproduce and, if possible, a sample `wiki-*.json`.

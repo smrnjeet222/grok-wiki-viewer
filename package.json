@@ -18,11 +18,11 @@
   "author": "jeet <smrnjeet.dev@gmail.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/smrnjeet/grok-wiki-viewer.git"
+    "url": "https://github.com/smrnjeet222/grok-wiki-viewer.git"
   },
-  "homepage": "https://github.com/smrnjeet/grok-wiki-viewer#readme",
+  "homepage": "https://github.com/smrnjeet222/grok-wiki-viewer#readme",
   "bugs": {
-    "url": "https://github.com/smrnjeet/grok-wiki-viewer/issues"
+    "url": "https://github.com/smrnjeet222/grok-wiki-viewer/issues"
   },
   "scripts": {
     "dev": "bun run scripts/dev.ts",

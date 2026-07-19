@@ -6,6 +6,8 @@ A **local-first, browser-based reader for [Grok-Wiki](https://grok-wiki.com) JSO
 
 ![Grok-Wiki Viewer screenshot](./public/screenshot.png)
 
+⭐ **If this is useful to you, please [star the repo](https://github.com/smrnjeet222/grok-wiki-viewer)** — it helps others find it.
+
 ## Why this exists
 
 The workflow this is built for:
@@ -31,7 +33,7 @@ That's it. Generate wikis from the CLI/agent, view them locally. This tool is th
 Requires [Bun](https://bun.sh) `>= 1.0`.
 
 ```bash
-git clone https://github.com/smrnjeet/grok-wiki-viewer.git
+git clone https://github.com/smrnjeet222/grok-wiki-viewer.git
 cd grok-wiki-viewer
 bun install
 bun run dev
@@ -188,6 +190,10 @@ scripts/dev.ts       Runs Vite + API together
 ## Tech stack
 
 React 19 · TanStack Router · TanStack Query · Vite 6 · Bun · TypeScript · react-markdown · Mermaid · highlight.js
+
+## Star the project
+
+If Grok-Wiki Viewer saves you time, please **[give it a ⭐ on GitHub](https://github.com/smrnjeet222/grok-wiki-viewer)**. Stars are the simplest way to support the project and help more people discover it.
 
 ## Contributing
 
