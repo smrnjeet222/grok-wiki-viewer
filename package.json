@@ -1,8 +1,29 @@
 {
-  "name": "local-wiki-preview",
-  "private": true,
+  "name": "grok-wiki-viewer",
   "version": "0.1.0",
   "type": "module",
+  "description": "Local-first, browser-based reader for Grok-Wiki JSON artifacts, with Mermaid diagrams, TOC, and local exports.",
+  "keywords": [
+    "grok-wiki",
+    "wiki",
+    "markdown",
+    "mermaid",
+    "viewer",
+    "local-first",
+    "bun",
+    "react",
+    "offline"
+  ],
+  "license": "MIT",
+  "author": "jeet <smrnjeet.dev@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/smrnjeet/grok-wiki-viewer.git"
+  },
+  "homepage": "https://github.com/smrnjeet/grok-wiki-viewer#readme",
+  "bugs": {
+    "url": "https://github.com/smrnjeet/grok-wiki-viewer/issues"
+  },
   "scripts": {
     "dev": "bun run scripts/dev.ts",
     "dev:server": "bun --watch server/index.ts",
