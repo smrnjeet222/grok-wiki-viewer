@@ -11,8 +11,23 @@ import {
 import { listFromIndex, loadWiki, scanWikis, wikiRoots } from "./scanWikis";
 
 const PORT = Number(process.env.PORT || 4173);
+const HOST = process.env.HOST || "0.0.0.0";
 const isProd = process.env.NODE_ENV === "production";
 const distDir = join(import.meta.dir, "..", "dist");
+
+// Allow a static-hosted frontend (tunnel / VPS / CDN) to call this API cross-origin.
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
+const corsHeaders: Record<string, string> = {
+  "access-control-allow-origin": CORS_ORIGIN,
+  "access-control-allow-methods": "GET, OPTIONS",
+  "access-control-allow-headers": "content-type",
+  "access-control-max-age": "86400",
+};
+
+function withCors(res: Response): Response {
+  for (const [key, value] of Object.entries(corsHeaders)) res.headers.set(key, value);
+  return res;
+}
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -119,15 +134,18 @@ async function handleStatic(url: URL): Promise<Response> {
 
 const server = Bun.serve({
   port: PORT,
-  hostname: "127.0.0.1",
+  hostname: HOST,
   async fetch(req) {
     const url = new URL(req.url);
+    if (req.method === "OPTIONS") {
+      return withCors(new Response(null, { status: 204 }));
+    }
     if (url.pathname.startsWith("/api/")) {
       try {
-        return await handleApi(req, url);
+        return withCors(await handleApi(req, url));
       } catch (err) {
         console.error(err);
-        return json({ ok: false, error: String(err) }, 500);
+        return withCors(json({ ok: false, error: String(err) }, 500));
       }
     }
     if (isProd) return handleStatic(url);
@@ -135,5 +153,5 @@ const server = Bun.serve({
   },
 });
 
-console.log(`local-wiki-preview API http://127.0.0.1:${server.port}`);
+console.log(`local-wiki-preview API http://${HOST}:${server.port}`);
 console.log(`scanning roots:\n  - ${wikiRoots().join("\n  - ")}`);

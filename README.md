@@ -34,9 +34,49 @@ Scans (deduped by wiki id):
 
 Looks for `**/wikis/wiki-*.json`.
 
+## Deploy live
+
+The frontend is a static SPA; the Bun server is optional. Three modes:
+
+### 1. Static + upload (no server)
+
+Host `dist/` on any static host (Vercel, Netlify, Cloudflare Pages, GitHub Pages).
+
+```bash
+bun install
+bun run build   # outputs dist/
+```
+
+- SPA fallback is preconfigured: `vercel.json` (Vercel) and `public/_redirects` (Netlify / Cloudflare Pages).
+- Visitors open a wiki by dragging a `wiki-*.json` onto the library, or pasting a URL to one. All exports (Markdown, `llms.txt`, Obsidian ZIP, handoff) are generated in the browser.
+- GitHub Pages under a subpath: build with `VITE_BASE=/your-repo/ bun run build`.
+
+Note: a public HTTPS site cannot read a visitor's disk or reach `http://127.0.0.1` (mixed-content + Private Network Access). Live local data therefore needs mode 2 or 3.
+
+### 2. Static + remote API (tunnel or VPS)
+
+Build the static site pointed at a running Grok-Wiki server over HTTPS:
+
+```bash
+VITE_API_BASE=https://your-tunnel.example/api bun run build
+```
+
+Expose your local server with an HTTPS tunnel (`cloudflared tunnel --url http://127.0.0.1:4173`, `ngrok http 4173`) or run it on a VPS. CORS is enabled (`CORS_ORIGIN`, default `*`).
+
+### 3. Self-hosted Bun server (Docker)
+
+Serves the built frontend and the API together.
+
+```bash
+docker build -t wiki-reader .
+docker run -p 4173:4173 -v /path/to/wikis:/data/wikis -e GROK_WIKI_ROOT=/data/wikis wiki-reader
+```
+
+Works on Fly.io / Railway / Render / any VPS. Configurable via `HOST`, `PORT`, `CORS_ORIGIN`, `GROK_WIKI_ROOT`.
+
 ## Features
 
-- Library of all local wikis
+- Library of all local wikis, plus in-browser upload / URL loading
 - Continuous / paged reading
 - Sidebar contents, on-this-page TOC
 - Markdown + Mermaid zoom

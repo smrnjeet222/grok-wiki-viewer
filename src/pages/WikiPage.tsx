@@ -395,7 +395,7 @@ export function WikiPage() {
 
       <PageToc headings={scopedTocHeadings} />
       <SharePanel
-        wikiId={wiki.id}
+        wiki={wiki}
         open={shareOpen}
         onClose={() => setShareOpen(false)}
       />

@@ -155,6 +155,22 @@ function makeSvgResponsive(svg: string): string {
     .replace(/style="max-width:\s*[\d.]+px;?"/gi, 'style="max-width:100%;height:auto"');
 }
 
+/**
+ * Generators sometimes emit unquoted flowchart edge labels containing `()`, `[]`,
+ * or `{}` (e.g. `A -->|Execute()| B`), which crash the mermaid parser. Wrap such
+ * labels in quotes defensively. Only touches flowchart/graph diagrams.
+ */
+function quoteEdgeLabels(chart: string): string {
+  const first = chart.trimStart().split(/\s+/)[0];
+  if (first !== "flowchart" && first !== "graph") return chart;
+  return chart.replace(/\|([^|\n]+)\|/g, (match, label: string) => {
+    const trimmed = label.trim();
+    if (/^".*"$/.test(trimmed)) return match; // already quoted
+    if (!/[()[\]{}]/.test(trimmed)) return match; // no risky chars
+    return `|"${trimmed.replace(/"/g, "'")}"|`;
+  });
+}
+
 /** Inline SVG ids are document-global; scope the dialog copy away from the preview. */
 function scopeSvgIds(svg: string, prefix: string): string {
   const ids = [...svg.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]);
@@ -215,7 +231,7 @@ export function MermaidBlock({ chart }: { chart: string }) {
       if (cancelled) return;
       ensureMermaid(mermaid, theme);
       try {
-        const { svg: rendered } = await mermaid.render(id, chart.trim());
+        const { svg: rendered } = await mermaid.render(id, quoteEdgeLabels(chart.trim()));
         cleanupMermaidArtifacts(id);
         if (cancelled) return;
         setSvg(makeSvgResponsive(rendered));

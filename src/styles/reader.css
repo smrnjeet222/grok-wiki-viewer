@@ -410,6 +410,80 @@ html[data-theme="dark"] .btn.primary {
   overflow-wrap: anywhere;
 }
 
+.open-wiki {
+  margin-top: clamp(2.5rem, 6vw, 4rem);
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+}
+
+.open-wiki h2 {
+  margin: 0 0 0.35rem;
+  font-family: var(--display);
+  font-size: 1.5rem;
+  font-weight: 400;
+}
+
+.open-wiki > p {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-height: 7rem;
+  padding: 1.25rem;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: 0.85rem;
+  background: var(--surface-soft);
+  color: var(--muted);
+  text-align: center;
+  cursor: pointer;
+}
+
+.dropzone strong {
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+.dropzone span {
+  font-size: 0.82rem;
+}
+
+.dropzone:hover,
+.dropzone.is-active {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.open-wiki-url {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+}
+
+.open-wiki-url input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.88rem;
+}
+
+.open-wiki-url input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .wiki-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -574,12 +648,11 @@ html[data-theme="dark"] .btn.primary {
 /* Reader shell */
 
 .reader {
-  width: min(100%, 112rem);
+  width: 100%;
   min-height: calc(100vh - var(--topbar-height));
   display: grid;
-  grid-template-columns: minmax(15rem, 17rem) minmax(0, 1fr) minmax(12rem, 14rem);
+  grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr) minmax(12rem, 16rem);
   align-items: start;
-  margin: 0 auto;
 }
 
 .sidebar {

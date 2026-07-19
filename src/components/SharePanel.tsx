@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { wikiApiBase } from "../lib/api";
+import type { WikiRecord } from "../lib/types";
+import {
+  buildFullMarkdown,
+  buildLlmsTxt,
+  buildObsidianZip,
+  openInBrowser,
+  triggerDownload,
+} from "../lib/wikiExport";
 
 function useModal(open: boolean) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -23,18 +31,18 @@ function useModal(open: boolean) {
 }
 
 export function SharePanel({
-  wikiId,
+  wiki,
   open,
   onClose,
 }: {
-  wikiId: string;
+  wiki: WikiRecord;
   open: boolean;
   onClose: () => void;
 }) {
   const { ref: dialogRef, restoreFocus } = useModal(open);
   const [copyStatus, setCopyStatus] = useState("");
-  const base = wikiApiBase(wikiId);
-  const localUrl = `${window.location.origin}/wiki/${encodeURIComponent(wikiId)}`;
+  const base = wikiApiBase(wiki.id);
+  const localUrl = `${window.location.origin}/wiki/${encodeURIComponent(wiki.id)}`;
 
   return (
     <dialog
@@ -87,39 +95,66 @@ export function SharePanel({
           </span>
           <span aria-hidden="true">Copy</span>
         </button>
-        <a className="export-action" href={`${base}.md`} target="_blank" rel="noreferrer">
+        <button
+          type="button"
+          className="export-action"
+          onClick={() => {
+            openInBrowser(buildFullMarkdown(wiki, base));
+            setCopyStatus("Full Markdown opened in a new tab.");
+          }}
+        >
           <span>
             <strong>Full Markdown</strong>
             <small>One portable Markdown document</small>
           </span>
           <span aria-hidden="true">↗</span>
-        </a>
-        <a className="export-action" href={`${base}/llms.txt`} target="_blank" rel="noreferrer">
+        </button>
+        <button
+          type="button"
+          className="export-action"
+          onClick={() => {
+            openInBrowser(buildLlmsTxt(wiki, base));
+            setCopyStatus("llms.txt opened in a new tab.");
+          }}
+        >
           <span>
             <strong>llms.txt</strong>
             <small>Compact agent-readable index</small>
           </span>
           <span aria-hidden="true">↗</span>
-        </a>
-        <a
+        </button>
+        <button
+          type="button"
           className="export-action"
-          href={`${base}/llms-full.txt`}
-          target="_blank"
-          rel="noreferrer"
+          onClick={() => {
+            openInBrowser(buildFullMarkdown(wiki, base));
+            setCopyStatus("llms-full.txt opened in a new tab.");
+          }}
         >
           <span>
             <strong>llms-full.txt</strong>
             <small>Complete agent-readable content</small>
           </span>
           <span aria-hidden="true">↗</span>
-        </a>
-        <a className="export-action" href={`${base}/export/obsidian.zip`}>
+        </button>
+        <button
+          type="button"
+          className="export-action"
+          onClick={() => {
+            triggerDownload(
+              `${wiki.id}-obsidian.zip`,
+              buildObsidianZip(wiki),
+              "application/zip",
+            );
+            setCopyStatus("Obsidian vault downloaded.");
+          }}
+        >
           <span>
             <strong>Obsidian vault</strong>
             <small>Download linked notes as ZIP</small>
           </span>
           <span aria-hidden="true">↓</span>
-        </a>
+        </button>
         <button
           type="button"
           className="export-action"
